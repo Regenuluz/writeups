@@ -1,0 +1,455 @@
+\documentclass[writeup.tex]{subfiles}
+\begin{document}
+
+			
+\section{Part 4: My Gosh... It's Full of Holes} \label{section.part4}
+	Now, here's the fun part. Pwn some website. First though we have to figure out what websites to actually pwn.\\
+	\\
+	So time to use apktool to get access to the strings.xml file. This file contains constants to use in the application.
+	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=\linewidth]{"screenshots/apktool_decompile"}
+	\end{figure}
+	
+	Unpacking XML, that's what I want to see.\\
+	\\
+	\textit{Now that the APK has been decompiled with apktool, you can also navigate into 'res/raw/' to find the audio file.}
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=\linewidth]{"screenshots/apktool_mp3"}
+	\end{figure}
+	
+	Alright, time to open the strings.xml file.
+	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=\linewidth]{"screenshots/strings xml"}
+	\end{figure}
+	
+	This gives the following urls
+	\begin{itemize}
+		\item analytics\_launch\_url - \url{http://analytics.northpolewonderland.com/report.php?type=launch}
+		\item analytics\_usage\_url - \url{http://analytics.northpolewonderland.com/report.php?type=usage}
+		\item banner\_ad\_url - \url{http://ads.northpolewonderland.com/affiliate/C9E380C8-2244-41E3-93A3-D6C6700156A5}
+		\item debug\_data\_collection\_url - \url{http://dev.northpolewonderland.com/index.php}
+		\item dungeon\_url - \url{http://dungeon.northpolewonderland.com/}
+		\item exhandler\_url - \url{http://ex.northpolewonderland.com/exception.php}
+	\end{itemize}
+	
+	Which is excellent. Pinging each domain provides an IP address that can be verified by the Oracle.	
+	
+	\subsection{Attempt to remotely exploit each of the following targets.}
+		Verify IPs
+		
+		\subsubsection{The Mobile Analytics Server (via credentialed login access)}
+			Alright, now that \url{https://analytics.northpolewonderland.com/} has been verified as a target, it's time to pay it a visit.
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[width=\linewidth]{"screenshots/pwns/Site 1 - First"}
+			\end{figure}
+			
+			Entering that URL greets you with a redirect to \textit{/login.php} and a login screen.\\
+			\\
+			Seeing as the android app are using the credentials found earlier to send off information, let's try and login with them.\\
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[width=\linewidth]{"screenshots/pwns/Site 1 - Logged in"}
+			\end{figure}
+			
+			Bingo! We've successfully logged into the website. And would you believe it, there's a link called "MP3" which points to \url{https://analytics.northpolewonderland.com/getaudio.php?id=20c216bc-b8b1-11e6-89e1-42010af00008}. Clicking that link provides the very first audio file.
+			
+		\subsubsection{The Dungeon Game}
+			One of the elves kindly provides a binary\footnote{Found at \url{http://www.northpolewonderland.com/dungeon.zip}} of the dungeon game, also known as Zork, to play around with and from the APK we have \url{http://dungeon.northpolewonderland.com/} which shows commands that can be used in the game. It also explains how a new passage has opened up, which leads to the lair of a mischievous elf, who will trade for secrets.\\
+			\\
+			Before getting started on the game, it's time to do a little research, because I frankly I've never been any good at Zork and the only version I've completed is the Strange Leaflet\footnote{A quest given in \href{http://www.kingdomofloathing.com}{Kingdom Of Loathing}}.\\
+			\\
+			Searching the web for a bit leads to \url{http://gunkies.org/wiki/Zork_hints}, which reveals a command called GDT, so it's time to see if this works in our version of the game.
+			\begin{figure}[H]
+				\centering
+				\includegraphics[scale=1]{"screenshots/pwns/Site 2 - init GDT"}
+			\end{figure}
+			
+			And the debug is indeed enabled. Next part is figuring out which command(s) might be useful. Straight away, the TK (take) command looks like fun. By doing a bit of testing, it seems that there are 217 items in the game. To spawn them all in, to have a look at them I used the following script to generate the commands, which I then just copy and pasted into the game.\\
+						
+			\lstinputlisting[numbers=left,language=Python,columns=fullflexible,breaklines]{"code/dungeon_items.py"}
+			
+			
+			So pasting the output from the script into the game we get the following
+				
+			\begin{figure}[H]
+				\centering
+				\includegraphics[scale=1]{"screenshots/pwns/Site 2 - gdt spawn items"}
+			\end{figure}
+			
+			So a whole bunch of items has been claimed, great success. Now it's time to see which items I got.
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[scale=1]{"screenshots/pwns/Site 2 - inventory"}
+			\end{figure}
+			
+			Well, the last item obtained is the \textit{elf}, also amongst the items we find a \textit{gold card}, after a little bit of testing we get the following result.
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[scale=1]{"screenshots/pwns/Site 2 - local game over"}
+			\end{figure}
+			
+			So dropping the elf allows us to give it items, and giving it the gold card seems to complete the game, and also tells us to get online to get the real prize.\\
+			\\
+			This means it's time to nmap \url{dungeon.northpolewonderland.com} to figure out where the online version of the game is located.
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[scale=1]{"screenshots/pwns/Site 2 - nmap"}
+			\end{figure}
+			
+			Well well well, it seems port \textit{11111} is open. So time to try and connect to it.
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[scale=1]{"screenshots/pwns/Site 2 - remote"}
+			\end{figure}
+			
+			Yes! Looks like we found the online version of the game. Checking that \textit{GDT} works on the online version, reveals that it indeed does work. So copy pasting the output from the above script into the online version and then repeating the steps from the local version should give us the secret.
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[scale=1]{"screenshots/pwns/Site 2 - online win"}
+			\end{figure}
+			
+			And another great victory. Time to shop off an email and see what kind of response I get.
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[scale=1]{"screenshots/pwns/Site 2 - email response"}
+			\end{figure}
+			
+			That's the email, along with an audio file called \textit{discombobulatedaudio2.mp3}.
+			
+			
+		\subsubsection{The Debug Server}
+			Pfft, visiting \url{http://dev.northpolewonderland.com/index.php} just shows a blank page. That's no fun.\\
+			\\
+			Now heading to JadX and checking out how the app using it, we stumble upon
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[width=\linewidth]{"screenshots/pwns/Site 3 - jadx 1"}
+			\end{figure}
+			
+			and a little more investigation shows that it sends this as, surprise surprise, a POST request. Time for some curling with the following JSON.
+			
+			\begin{lstlisting}[columns=fullflexible,breaklines]
+{
+	"date": "20161228095114+0100",
+	"udid": "thisnthat",
+	"debug": "com.northpolewonderland.santagram.EditProfile, EditProfile",
+	"freemem": 123456798
+}
+			\end{lstlisting}
+			and this is the output
+			\begin{figure}[H]
+				\centering
+				\includegraphics[width=\linewidth]{"screenshots/pwns/Site 3 - curl 1"}
+			\end{figure}
+			
+			So it seems to more or less just reflect what I send it, however there is one tiny thing that looks interesting. Time to mix up the JSON a little bit and see what happens.
+
+			\begin{lstlisting}[columns=fullflexible,breaklines]
+{
+	"date": "20161228095114+0100",
+	"udid": "thisnthat",
+	"debug": "com.northpolewonderland.santagram.EditProfile, EditProfile",
+	"freemem": 123456798,
+	"verbose": true
+}
+			\end{lstlisting}
+			
+			\textit{This, at the very late time of doing the write-up gives a long long list of files, so instead of providing a screeenshot, here's a paste of the output I got when I actually solved the challenge. (And didn't take screenshots...}
+			
+			Right, that out of the way, the output we get, when sending that JSON, is
+			
+			\begin{lstlisting}[columns=fullflexible,breaklines]
+{"date":"20161228133418","date.len":14,"status":"OK","status.len":"2","filename":"debug-20161228133418-0.txt","filename.len":26,"request":{"date":"20161228095114+0100","udid":"fa0eef1fcb9c0c7b","debug":"com.northpolewonderland.santagram.EditProfile, EditProfile","freemem":9223372036854775807,"verbose":true},"files":["debug-20161224235959-0.mp3","debug-20161228132132-0.txt","debug-20161228133354-0.txt","debug-20161228133418-0.txt","index.php"]}
+			\end{lstlisting}
+			
+			The keen observer will notice the file called 'debug-20161224235959-0.mp3' and can go grab it from the server. Mission completed.
+			
+			\textit{Now, I know I said I didn't want to provide a screenshot, however, here's one anyway. The list of files literally goes beyond the scroll buffer in my terminal. If I had been confronted with this list the first time around, I would have echoed it into a file and then gone through the output.}
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[width=\linewidth]{"screenshots/pwns/Site 3 - curl 2"}
+			\end{figure}
+			
+		\subsubsection{The Banner Ad Server}
+			Ads, why'd it have to be ads? Nobody likes ads. Or at least, most of the ads. Some ads are cool and they can stay.\\
+			\\
+			Visiting \url{http://ads.northpolewonderland.com/} displays a website which looks... uh.. special... 
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[scale=0.5]{"screenshots/pwns/Site 4 - frontpage"}
+			\end{figure}
+			
+			Now, going through the source code shows that the site is build using Meteor, something that I've never actually used. So it's time to read up on some fun stuff. There's the Mining Meteor\footnote{Over at \url{https://pen-testing.sans.org/blog/2016/12/06/mining-meteor}} article by Tim Medin, over at SANS and of course the documentation for the Meteor Framework\footnote{Meteor can be found at \url{https://www.meteor.com/}}.\\
+			\\
+			After a bit of reading the docs, the article, the little handy script Mr. Medin has created, and employing said script, the following is found.
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[scale=1]{"screenshots/pwns/Site 4 - meteor miner1"}
+			\end{figure}
+			
+			See the red square? That's a link that's not actually anywhere in the UI of the site. So it seems this app is indeed leaking too much information. Heading on over to '/admin/quotes'...
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[scale=1]{"screenshots/pwns/Site 4 - meteor miner2"}
+			\end{figure}
+			
+			... And I'm greeted with this view. Well well well. It's time to take a look at what's inside of the HomeQuotes collection, because on this page it shows 5 entries instead of 4.
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[scale=1]{"screenshots/pwns/Site 4 - meteor miner3"}
+			\end{figure}
+			
+			Opening the developer tools in Chrome and fetching the entire collection, it's possible to expand the objects returned, and bingo, an audio file called 'discombobulatedaudio5.mp3' - Not bad.
+			
+		\subsubsection{The Uncaught Exception Handler Server}
+			So visiting \url{http://ex.northpolewonderland.com/exception.php} kindly informs that it only accepts POST requests. That means it's time to bring out 'curl', because that makes it ever so easy to ship off POST requests with different parameters.
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[width=\linewidth]{"screenshots/pwns/Site 5 - curl 1"}
+			\end{figure}	
+			
+			Well, this is literally the nicest server. Now it tells me that it expects json. Mkay, let's hand it some of that.
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[width=\linewidth]{"screenshots/pwns/Site 5 - curl 2"}
+			\end{figure}
+			
+			Aha! So even more information about what it wants. Now, which one to try out first...
+			\begin{lstlisting}[columns=fullflexible,breaklines]
+{
+	"operation": "ReadCrashDump"
+}
+			\end{lstlisting}
+			
+			and then we get
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[width=\linewidth]{"screenshots/pwns/Site 5 - curl 3"}
+			\end{figure}
+			
+			After a bit of playing around and seeing what kind of error messages I get, I get to this JSON
+			\begin{lstlisting}[columns=fullflexible,breaklines]
+{
+	"operation": "ReadCrashDump",
+	"data": {
+		"crashdump": ""
+	}
+}
+			\end{lstlisting}
+			
+			Which gives this beautiful output
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[width=\linewidth]{"screenshots/pwns/Site 5 - curl 4"}
+			\end{figure}
+			
+			So this gives a '500 - Internal Server Error', interesting. But also a bit of a roadblock. So it's time to look at what 'WriteCrashDump' does, using the same procedure as above.
+			
+			\begin{lstlisting}[columns=fullflexible,breaklines]
+{
+	"operation": "WriteCrashDump",
+	"data": "Hello"
+}
+			\end{lstlisting}
+			
+			Turns out to give something that might give a clue to what to do with 'ReadCrashDump'.
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[width=\linewidth]{"screenshots/pwns/Site 5 - curl 5"}
+			\end{figure}
+			
+			So with this new information it's time to modify the ReadCrashDump JSON.
+			
+			\begin{lstlisting}[columns=fullflexible,breaklines]
+{
+	"operation": "ReadCrashDump",
+	"data": {
+		"crashdump": "crashdump-DfRjM9"
+	}
+}
+			\end{lstlisting}
+			
+			Now, I've left out the .php part, because the server would complain about it being there. Alright, so time to see what files we can actually read with this script.
+			
+			\begin{lstlisting}[columns=fullflexible,breaklines]
+{
+	"operation": "ReadCrashDump",
+	"data": {
+		"crashdump": "../docs/crashdump-DfRjM9"
+	}
+}
+			\end{lstlisting}
+			
+			Gets me the same output as before, meaning that we can either traverse directories or that it somehow gets filtered out. So, let's see if it's possible to read the exception.php file.
+			
+			\begin{lstlisting}[columns=fullflexible,breaklines]
+{
+	"operation": "ReadCrashDump",
+	"data": {
+		"crashdump": "../exception"
+	}
+}
+			\end{lstlisting}
+			
+			Nothing's ever that easy, is it? Well, that gives the 500 error from above. So what's next. Depending on how the files are included on the server, when calling ReadCrashDump, there are a few options. PHP have this little neat protocol called 'php://' and with this, you can call all sort of neat functions to be executed. Now there are plenty of articles about this exploit. Here\footnote{\url{https://www.idontplaydarts.com/2011/02/using-php-filter-for-local-file-inclusion/}}, here\footnote{\url{https://pen-testing.sans.org/blog/2016/12/07/getting-moar-value-out-of-php-local-file-include-vulnerabilities}} and many other places. Just search for 'PHP Local File Inclusion' or LFI for short.
+			
+			\begin{lstlisting}[columns=fullflexible,breaklines]
+{
+	"operation": "ReadCrashDump",
+	"data": {
+		"crashdump": "php://filter/convert.base64-encode/resource=../exception"
+	}
+}
+			\end{lstlisting}
+			
+			This beauty does return a lot of base64 encoded stuff! Decoding it gives us
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[width=\linewidth]{"screenshots/pwns/Site 5 - curl 7"}
+			\end{figure}
+			
+			This solving this challenge.
+			
+		\subsubsection{The Mobile Analytics Server (post authentication)}
+			So with this task, it's back to \url{analytics.northpolewonderland.com} to see what's up. After browsing the site a bit, logged in with the guest user, it's time to look for directories that probably should not have been there.\\
+			\\
+			Directories, such as \textit{/admin/}, \textit{/.git/}, etc.. However, it's time to stop looking as soon as we look for \textit{/.git/}. It seems the creator of the website has the Git repository in the server root. This really is a bad idea, but good for me. Time to whip out 'wget' and download the contents.
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[width=\linewidth]{"screenshots/pwns/Site 7 - wget"}
+			\end{figure}
+			\begin{figure}[H]
+				\centering
+				\includegraphics[width=\linewidth]{"screenshots/pwns/Site 7 - wget2"}
+			\end{figure}
+			
+			And there we go. It's now time to see what the status of the Git repos is. With some luck we will have access to all, or at least most of the source code of the webpage and as everyone knows, having access to source code makes the whole pwnage thing easier.
+			\begin{figure}[H]
+				\centering
+				\includegraphics[width=.8\linewidth]{"screenshots/pwns/Site 7 - git status"}
+			\end{figure}
+			
+			Well, it seems that everything has been deleted from the Git. Thankfully it's git and that means we can revert the changes, if we need to. However, before doing anything, opening the folder in Visual Code\footnote{Found at \url{https://code.visualstudio.com/}}.\\
+			\\
+			Once the folder is open in Visual Code, it is possible to browse through the code, without having to modify the Git repos.\\
+			\\
+			While browsing through the code I found the following snippit.
+			\begin{figure}[H]
+				\centering
+				\includegraphics[scale=1]{"screenshots/pwns/Site 7 - check_access"}
+			\end{figure}
+			
+			Which clearly indicates that there are another user called 'administrator'. Next step is to figure out how to log in with this account.\\
+			\\
+			There is a file called 'crypto.php' which seems to be included by a lot of the pages and it looks like this.
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[width=\linewidth]{"screenshots/pwns/Site 7 - crypto"}
+			\end{figure}
+			
+			These 2 functions are used in conjunction with 'login.php' as seen in the following image.\\
+			\\
+			Now this shows how the cookie that is being used to store the logged in information is being formed. So it's time to create my very own personal AUTH cookie using the following PHP script.
+			
+			\lstinputlisting[numbers=left,language=PHP,columns=fullflexible,breaklines]{"code/create_token.php"}
+		
+			Using this script the following token is created, and when using that value, instead of the value of the AUTH cookie when logging in as 'guest'.
+		
+\begin{lstlisting}[backgroundcolor=\color{gray!25},basicstyle=\ttfamily]
+82532b2136348aaa1fa7dd2243dc0dc1e10948231f339e5edd5770daf9eef1
+8a4384f6e7bca04d86e573b965cc9c6549b849486263a40a63b71976884152
+\end{lstlisting}
+			(This should obviously be one line)\\
+			\\
+			\begin{figure}[H]
+				\centering
+				\includegraphics[width=\linewidth]{"screenshots/pwns/Site 7 - login"}
+			\end{figure}
+			
+			With this done, it's time to set the cookie via the developer console.
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[width=\linewidth]{"screenshots/pwns/Site 7 - cookie"}
+			\end{figure}
+			
+			And with that done it's time to refresh the browser and see the result.
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[scale=1]{"screenshots/pwns/Site 7 - admin menu"}
+			\end{figure}
+			
+			That's the menu, when logged in as administrator. So the MP3 link has been replaced by edit. So it's time to look into what the 'edit.php' file actually does. ... So it allows me to change the id, name, and description of the saved search you can create in the view screen.\\
+			\\
+			Now after a bit more of reading through the code, one thing sort of sticks out.
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[width=\linewidth]{"screenshots/pwns/Site 7 - sql edit"}
+			\end{figure}
+			
+			The reason it sticks out, is because when you update the stored search, it tells you what it checks for. This includes a field called 'query', now this can be confirmed to exist by looking at the 'sprusage.sql' file that also resides in the Git repos.\\
+			\\
+			Also, there is a table that contains audio. ... So you've probably guessed this already. It's time to change the stored search and set the query to		
+			
+			\begin{lstlisting}[language=SQL]
+	SELECT *, TO_BASE64(mp3) FROM audio
+			\end{lstlisting}
+			
+			So what this does, is hopefully to let me extract the audio file as base64. It should also evade all the very annoying mysqli\_real\_escape\_string that prevents classic SQL injections.\\
+			\\
+			To set the query simply visit\\
+			\url{/edit.php?id=<ID_GOES_HERE>&query=SELECT\%20*,\%20TO_BASE64(mp3)\%20FROM\%20audio}
+			After visiting that, it's time to go to the view page and plot in the ID you updated. 
+			
+			\begin{figure}[H]
+				\centering
+				\includegraphics[width=\linewidth]{"screenshots/pwns/Site 7 - audio out"}
+			\end{figure}
+			
+			Bingo! We've actually got both of the mp3 files this way. Now the only thing left is copy pasting the base64 and decoding it, and make a note of the filename, discombobulatedaudio7.mp3.
+			
+			
+	
+	\subsection{What are the names of the audio files you discovered from each system above?}
+		The file names, in order, are as follow.
+		\begin{itemize}
+			\item discombobulatedaudio1.mp3
+			\item discombobulatedaudio2.mp3
+			\item discombobulatedaudio3.mp3
+			\item debug-20161224235959-0.mp3
+			\item discombobulatedaudio5.mp3
+			\item discombobulated-audio-6-XyzE3N9YqKNH.mp3
+			\item discombobulatedaudio7.mp3
+		\end{itemize}
+		
+\end{document}

